@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Floatly — Casual Educators Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a1a;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Sans', sans-serif;
+  }
+  ::-webkit-scrollbar { display: none; }
+
+  /* Tweaks panel */
+  #tweaks-panel {
+    display: none;
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    width: 240px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+    z-index: 9999;
+    font-family: 'DM Sans', sans-serif;
+  }
+  #tweaks-panel h3 { font-size: 13px; font-weight: 600; color: #111; margin-bottom: 14px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .tweak-group { margin-bottom: 14px; }
+  .tweak-label { font-size: 11px; color: #666; margin-bottom: 6px; font-weight: 500; }
+  .theme-swatches { display: flex; gap: 8px; }
+  .swatch {
+    width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+    border: 2px solid transparent; transition: all 0.15s;
+  }
+  .swatch.active { border-color: #111; transform: scale(1.1); }
+  .tweak-row { display: flex; gap: 6px; }
+  .tweak-btn {
+    flex: 1; padding: 7px 6px; border-radius: 8px; border: 1.5px solid #e5e5e5;
+    font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer;
+    font-weight: 500; background: #fff; color: #333; transition: all 0.15s;
+  }
+  .tweak-btn.active { background: #111; color: #fff; border-color: #111; }
+</style>
+</head>
+<body>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "theme": "sage",
+  "role": "educator"
+}/*EDITMODE-END*/;
+
+// ── Theme tokens ──────────────────────────────────────────────
+const THEMES = {
+  terra: {
+    accent: '#C4714A',
+    accentLight: '#F5EDE7',
+    accentDark: '#9E5434',
+    bg: '#FAF8F5',
+    card: '#FFFFFF',
+    border: '#EDE8E1',
+    text: '#1C1A18',
+    textMid: '#6B6460',
+    textMuted: '#A09A95',
+    tag: '#F0E8E2',
+    tagText: '#8A5A40',
+    navBg: 'rgba(250,248,245,0.92)',
+    name: 'Terracotta',
+  },
+  sage: {
+    accent: '#4E7C62',
+    accentLight: '#E8F2EC',
+    accentDark: '#375A47',
+    bg: '#F6FAF7',
+    card: '#FFFFFF',
+    border: '#DDE9E2',
+    text: '#171E1A',
+    textMid: '#576860',
+    textMuted: '#93A89C',
+    tag: '#E2EEE7',
+    tagText: '#3E6E51',
+    navBg: 'rgba(246,250,247,0.92)',
+    name: 'Sage',
+  },
+  navy: {
+    accent: '#3B5FA0',
+    accentLight: '#E8EEF8',
+    accentDark: '#2A4478',
+    bg: '#F5F7FB',
+    card: '#FFFFFF',
+    border: '#DDE3EF',
+    text: '#141820',
+    textMid: '#535C75',
+    textMuted: '#8F9AB5',
+    tag: '#E2E8F5',
+    tagText: '#2E4A88',
+    navBg: 'rgba(245,247,251,0.92)',
+    name: 'Navy',
+  },
+};
+
+// ── Sample data ───────────────────────────────────────────────
+const SHIFTS = [
+  {
+    id: 1, school: 'Northfield Montessori', suburb: 'Fitzroy North', distance: '1.2 km',
+    date: 'Tomorrow', dateShort: 'Tue 22 Apr', time: '8:30 – 3:30pm', hours: 7,
+    level: 'Primary (6–9)', pay: '$38/hr', urgent: true,
+    reason: 'Teacher illness', rooms: ['Casa', 'Primary'],
+    about: 'We are a small, family-oriented Montessori school seeking a casual assistant for our primary class tomorrow. AMI training preferred but not required.',
+    posted: '2 hrs ago',
+  },
+  {
+    id: 2, school: 'Little Learners Casa', suburb: 'Brunswick', distance: '2.8 km',
+    date: 'Wed 23 Apr', dateShort: 'Wed 23 Apr', time: '9:00 – 1:00pm', hours: 4,
+    level: 'Casa (3–6)', pay: '$36/hr', urgent: false,
+    reason: 'PD day coverage', rooms: ['Casa'],
+    about: 'Morning session coverage for our Casa environment. Experience with practical life and sensorial materials highly regarded.',
+    posted: '5 hrs ago',
+  },
+  {
+    id: 3, school: 'Riverstone Montessori', suburb: 'Northcote', distance: '3.1 km',
+    date: 'Thu 24 Apr', dateShort: 'Thu 24 Apr', time: '8:00 – 4:00pm', hours: 8,
+    level: 'Toddler (18m–3)', pay: '$40/hr', urgent: false,
+    reason: 'Parental leave relief', rooms: ['Toddler'],
+    about: 'Ongoing casual role covering toddler community. Experience with children under 3 essential. Working with Children Check required.',
+    posted: '1 day ago',
+  },
+  {
+    id: 4, school: 'Sunrise Montessori', suburb: 'Thornbury', distance: '4.0 km',
+    date: 'Fri 25 Apr', dateShort: 'Fri 25 Apr', time: '9:00 – 3:00pm', hours: 6,
+    level: 'Primary (9–12)', pay: '$39/hr', urgent: false,
+    reason: 'Teacher conference', rooms: ['Upper Primary'],
+    about: 'Upper primary class needs a guide for the day. Strong knowledge of Montessori upper primary materials preferred.',
+    posted: '1 day ago',
+  },
+];
+
+const SCHOOL_LISTINGS = [
+  { id: 1, title: 'Primary Class Cover', date: 'Tue 22 Apr', time: '8:30–3:30pm', status: 'Open', applicants: 3, urgent: true },
+  { id: 2, title: 'Casa Morning Session', date: 'Wed 23 Apr', time: '9:00–1:00pm', status: 'Filled', applicants: 7, urgent: false },
+  { id: 3, title: 'Toddler Relief', date: 'Thu 24 Apr', time: '8:00–4:00pm', status: 'Open', applicants: 1, urgent: false },
+];
+
+// ── Icons ─────────────────────────────────────────────────────
+const Icon = ({ name, size = 20, color = 'currentColor', style = {} }) => {
+  const paths = {
+    map: <><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill={color}/><circle cx="12" cy="9" r="2.5" fill="#fff"/></>,
+    clock: <><circle cx="12" cy="12" r="9" fill="none" stroke={color} strokeWidth="1.8"/><path d="M12 7v5l3 3" stroke={color} strokeWidth="1.8" strokeLinecap="round"/></>,
+    dollar: <><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/></>,
+    star: <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill={color}/>,
+    bookmark: <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>,
+    'bookmark-fill': <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" fill={color}/>,
+    bell: <><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/><path d="M13.73 21a2 2 0 01-3.46 0" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/></>,
+    person: <><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/><circle cx="12" cy="7" r="4" fill="none" stroke={color} strokeWidth="1.8"/></>,
+    grid: <><rect x="3" y="3" width="7" height="7" rx="1.5" fill={color}/><rect x="14" y="3" width="7" height="7" rx="1.5" fill={color}/><rect x="3" y="14" width="7" height="7" rx="1.5" fill={color}/><rect x="14" y="14" width="7" height="7" rx="1.5" fill={color}/></>,
+    plus: <path d="M12 5v14M5 12h14" stroke={color} strokeWidth="2.2" strokeLinecap="round"/>,
+    check: <path d="M4 12l5 5 10-10" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>,
+    chevron: <path d="M9 18l6-6-6-6" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+    'chevron-left': <path d="M15 18l-6-6 6-6" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>,
+    search: <><circle cx="11" cy="11" r="7" fill="none" stroke={color} strokeWidth="1.8"/><path d="M21 21l-4.35-4.35" stroke={color} strokeWidth="1.8" strokeLinecap="round"/></>,
+    filter: <><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></>,
+    edit: <><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/></>,
+    building: <><rect x="2" y="7" width="20" height="15" rx="2" fill="none" stroke={color} strokeWidth="1.8"/><path d="M16 22V12H8v10" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/><path d="M2 12h20" stroke={color} strokeWidth="1.8" strokeLinecap="round"/><path d="M12 2L2 7h20L12 2z" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></>,
+    calendar: <><rect x="3" y="4" width="18" height="18" rx="2" fill="none" stroke={color} strokeWidth="1.8"/><path d="M16 2v4M8 2v4M3 10h18" stroke={color} strokeWidth="1.8" strokeLinecap="round"/></>,
+    users: <><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/><circle cx="9" cy="7" r="4" fill="none" stroke={color} strokeWidth="1.8"/><path d="M23 21v-2a4 4 0 00-3-3.87" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/><path d="M16 3.13a4 4 0 010 7.75" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round"/></>,
+    close: <path d="M18 6L6 18M6 6l12 12" stroke={color} strokeWidth="2" strokeLinecap="round"/>,
+    lightning: <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill={color}/>,
+  };
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" style={style}>
+      {paths[name] || null}
+    </svg>
+  );
+};
+
+// ── Bottom Nav ─────────────────────────────────────────────────
+function BottomNav({ tabs, active, onTab, t }) {
+  return (
+    <div style={{
+      position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 30,
+      background: t.navBg, backdropFilter: 'blur(16px)',
+      borderTop: `1px solid ${t.border}`,
+      display: 'flex', paddingBottom: 28, paddingTop: 10,
+    }}>
+      {tabs.map(tab => {
+        const isActive = active === tab.id;
+        return (
+          <button key={tab.id} onClick={() => onTab(tab.id)} style={{
+            flex: 1, border: 'none', background: 'none', cursor: 'pointer',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+          }}>
+            <Icon name={tab.icon} size={22} color={isActive ? t.accent : t.textMuted}/>
+            <span style={{ fontSize: 10, fontWeight: isActive ? 600 : 400, color: isActive ? t.accent : t.textMuted, fontFamily: 'DM Sans' }}>
+              {tab.label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Tag chip ───────────────────────────────────────────────────
+function Tag({ children, t, accent = false }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      padding: '4px 10px', borderRadius: 100,
+      background: accent ? t.accent : t.tag,
+      color: accent ? '#fff' : t.tagText,
+      fontSize: 11, fontWeight: 600, letterSpacing: 0.02,
+      whiteSpace: 'nowrap',
+    }}>{children}</span>
+  );
+}
+
+// ── EDUCATOR SCREENS ──────────────────────────────────────────
+
+function ShiftCard({ shift, onPress, saved, onSave, t }) {
+  return (
+    <div onClick={onPress} style={{
+      background: t.card, borderRadius: 16, padding: '16px',
+      border: `1px solid ${t.border}`, marginBottom: 12, cursor: 'pointer',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+    }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            {shift.urgent && <Tag t={t} accent><Icon name="lightning" size={10} color="#fff" style={{marginRight: 2}}/>Urgent</Tag>}
+            <Tag t={t}>{shift.level}</Tag>
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: t.text, marginBottom: 2 }}>{shift.school}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: t.textMuted, fontSize: 12 }}>
+            <Icon name="map" size={12} color={t.textMuted}/>
+            {shift.suburb} · {shift.distance}
+          </div>
+        </div>
+        <button onClick={e => { e.stopPropagation(); onSave(); }} style={{
+          background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+        }}>
+          <Icon name={saved ? 'bookmark-fill' : 'bookmark'} size={20} color={saved ? t.accent : t.textMuted}/>
+        </button>
+      </div>
+      {/* Meta row */}
+      <div style={{
+        display: 'flex', gap: 16, padding: '10px 0',
+        borderTop: `1px solid ${t.border}`, borderBottom: `1px solid ${t.border}`,
+        marginBottom: 10,
+      }}>
+        {[
+          { icon: 'calendar', val: shift.date },
+          { icon: 'clock', val: shift.time },
+          { icon: 'dollar', val: shift.pay },
+        ].map(m => (
+          <div key={m.icon} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Icon name={m.icon} size={13} color={t.accent}/>
+            <span style={{ fontSize: 12, color: t.textMid, fontWeight: 500 }}>{m.val}</span>
+          </div>
+        ))}
+      </div>
+      {/* Footer */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: t.textMuted }}>Posted {shift.posted}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: t.accent, fontSize: 12, fontWeight: 600 }}>
+          View shift <Icon name="chevron" size={14} color={t.accent}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EducatorBrowse({ t, onShiftSelect }) {
+  const [saved, setSaved] = React.useState(new Set());
+  const [filter, setFilter] = React.useState('All');
+  const filters = ['All', 'Today', 'Urgent', 'Nearby'];
+
+  const toggleSave = (id) => {
+    setSaved(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const filtered = filter === 'Urgent' ? SHIFTS.filter(s => s.urgent)
+    : filter === 'Today' ? SHIFTS.filter(s => s.date === 'Tomorrow')
+    : SHIFTS;
+
+  return (
+    <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 90 }}>
+      {/* Header */}
+      <div style={{ padding: '60px 20px 16px', background: t.card, borderBottom: `1px solid ${t.border}` }}>
+        <div style={{ fontSize: 12, color: t.textMuted, fontWeight: 500, marginBottom: 2 }}>Good morning</div>
+        <div style={{ fontSize: 24, fontWeight: 700, color: t.text, fontFamily: 'DM Serif Display', marginBottom: 14 }}>
+          Find Your Next Shift
+        </div>
+        {/* Search bar */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: t.bg, borderRadius: 12, padding: '10px 14px',
+          border: `1px solid ${t.border}`,
+        }}>
+          <Icon name="search" size={16} color={t.textMuted}/>
+          <span style={{ color: t.textMuted, fontSize: 14 }}>Search schools or suburbs…</span>
+        </div>
+        {/* Filters */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, overflowX: 'auto', paddingBottom: 2 }}>
+          {filters.map(f => (
+            <button key={f} onClick={() => setFilter(f)} style={{
+              padding: '7px 14px', borderRadius: 100, border: `1.5px solid ${filter === f ? t.accent : t.border}`,
+              background: filter === f ? t.accent : t.card,
+              color: filter === f ? '#fff' : t.textMid,
+              fontSize: 13, fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap',
+              fontFamily: 'DM Sans',
+            }}>{f}</button>
+          ))}
+        </div>
+      </div>
+      {/* Results */}
+      <div style={{ padding: '16px 16px 0' }}>
+        <div style={{ fontSize: 12, color: t.textMuted, fontWeight: 500, marginBottom: 12 }}>
+          {filtered.length} shifts available near you
+        </div>
+        {filtered.map(s => (
+          <ShiftCard key={s.id} shift={s} t={t}
+            saved={saved.has(s.id)}
+            onSave={() => toggleSave(s.id)}
+            onPress={() => onShiftSelect(s)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ShiftDetail({ shift, t, onBack, onApply }) {
+  const [applied, setApplied] = React.useState(false);
+  return (
+    <div style={{ background: t.bg, minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Hero */}
+      <div style={{
+        background: t.accentLight, padding: '56px 20px 24px',
+        borderBottom: `1px solid ${t.border}`, position: 'relative',
+      }}>
+        <button onClick={onBack} style={{
+          background: 'rgba(255,255,255,0.7)', border: 'none', borderRadius: 10, width: 36, height: 36,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginBottom: 16,
+        }}>
+          <Icon name="chevron-left" size={18} color={t.text}/>
+        </button>
+        {shift.urgent && <div style={{ marginBottom: 8 }}><Tag t={t} accent><Icon name="lightning" size={10} color="#fff" style={{marginRight: 2}}/>Urgent fill needed</Tag></div>}
+        <div style={{ fontSize: 22, fontWeight: 700, color: t.text, fontFamily: 'DM Serif Display', lineHeight: 1.2, marginBottom: 6 }}>{shift.school}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: t.textMid, fontSize: 13 }}>
+          <Icon name="map" size={13} color={t.accent}/>
+          {shift.suburb} · {shift.distance} from you
+        </div>
+      </div>
+
+      {/* Meta cards */}
+      <div style={{ padding: '16px 16px 0' }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14,
+        }}>
+          {[
+            { icon: 'calendar', label: 'Date', val: shift.dateShort },
+            { icon: 'clock', label: 'Hours', val: `${shift.time}` },
+            { icon: 'dollar', label: 'Pay rate', val: shift.pay },
+            { icon: 'users', label: 'Level', val: shift.level },
+          ].map(m => (
+            <div key={m.label} style={{
+              background: t.card, borderRadius: 12, padding: '12px 14px',
+              border: `1px solid ${t.border}`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Icon name={m.icon} size={14} color={t.accent}/>
+                <span style={{ fontSize: 11, color: t.textMuted, fontWeight: 500 }}>{m.label}</span>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{m.val}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* About */}
+        <div style={{ background: t.card, borderRadius: 12, padding: '14px', border: `1px solid ${t.border}`, marginBottom: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 8 }}>About this shift</div>
+          <div style={{ fontSize: 13, lineHeight: 1.6, color: t.textMid }}>{shift.about}</div>
+        </div>
+
+        {/* Reason */}
+        <div style={{ background: t.card, borderRadius: 12, padding: '14px', border: `1px solid ${t.border}`, marginBottom: 80 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 6 }}>Reason for shift</div>
+          <div style={{ fontSize: 13, color: t.textMid }}>{shift.reason}</div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        background: t.navBg, backdropFilter: 'blur(16px)',
+        padding: '14px 16px 34px', borderTop: `1px solid ${t.border}`,
+      }}>
+        {applied ? (
+          <div style={{
+            background: t.accentLight, borderRadius: 14, padding: '16px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          }}>
+            <Icon name="check" size={18} color={t.accent}/>
+            <span style={{ fontSize: 15, fontWeight: 600, color: t.accent }}>Application Sent!</span>
+          </div>
+        ) : (
+          <button onClick={() => setApplied(true)} style={{
+            width: '100%', background: t.accent, color: '#fff',
+            border: 'none', borderRadius: 14, padding: '16px',
+            fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans',
+          }}>Apply for this Shift</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EducatorProfile({ t }) {
+  const availability = ['Mon', 'Tue', 'Thu', 'Fri'];
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  const certs = ['Working with Children Check', 'AMI Primary Diploma', 'First Aid Certificate'];
+  return (
+    <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 90 }}>
+      <div style={{ padding: '60px 20px 20px', background: t.card, borderBottom: `1px solid ${t.border}`, textAlign: 'center' }}>
+        {/* Avatar */}
+        <div style={{
+          width: 72, height: 72, borderRadius: 36, background: t.accentLight,
+          margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: `2px solid ${t.accent}`,
+        }}>
+          <span style={{ fontSize: 28, fontFamily: 'DM Serif Display', color: t.accent }}>S</span>
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: t.text, fontFamily: 'DM Serif Display' }}>Sarah Mitchell</div>
+        <div style={{ fontSize: 13, color: t.textMid, marginTop: 2 }}>Montessori Educator · Fitzroy North</div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 }}>
+          {[4.9, '28 shifts', 'AMI'].map((b, i) => (
+            <div key={i} style={{
+              background: t.accentLight, borderRadius: 100, padding: '5px 12px',
+              fontSize: 12, fontWeight: 600, color: t.accent,
+            }}>{i === 0 ? `⭐ ${b}` : b}</div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ padding: '16px' }}>
+        {/* Availability */}
+        <div style={{ background: t.card, borderRadius: 14, padding: '14px', border: `1px solid ${t.border}`, marginBottom: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 12 }}>Weekly Availability</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {days.map(d => (
+              <div key={d} style={{
+                flex: 1, textAlign: 'center', borderRadius: 10, padding: '8px 4px',
+                background: availability.includes(d) ? t.accent : t.bg,
+                color: availability.includes(d) ? '#fff' : t.textMuted,
+                fontSize: 12, fontWeight: 600,
+              }}>{d}</div>
+            ))}
+          </div>
+        </div>
+
+        {/* Certs */}
+        <div style={{ background: t.card, borderRadius: 14, padding: '14px', border: `1px solid ${t.border}`, marginBottom: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 10 }}>Qualifications</div>
+          {certs.map((c, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: i < certs.length - 1 ? 10 : 0 }}>
+              <div style={{ width: 22, height: 22, borderRadius: 100, background: t.accentLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name="check" size={12} color={t.accent}/>
+              </div>
+              <span style={{ fontSize: 13, color: t.textMid }}>{c}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {[
+            { label: 'Shifts completed', val: '28' },
+            { label: 'Schools worked at', val: '9' },
+            { label: 'Avg response time', val: '< 1 hr' },
+            { label: 'Re-hire rate', val: '94%' },
+          ].map(s => (
+            <div key={s.label} style={{
+              background: t.card, borderRadius: 12, padding: '14px',
+              border: `1px solid ${t.border}`, textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: t.accent, fontFamily: 'DM Serif Display' }}>{s.val}</div>
+              <div style={{ fontSize: 11, color: t.textMuted, marginTop: 2 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── SCHOOL SCREENS ─────────────────────────────────────────────
+
+function SchoolDashboard({ t, onPost, onManage }) {
+  return (
+    <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 90 }}>
+      <div style={{ padding: '60px 20px 20px', background: t.card, borderBottom: `1px solid ${t.border}` }}>
+        <div style={{ fontSize: 12, color: t.textMuted, fontWeight: 500, marginBottom: 2 }}>Northfield Montessori</div>
+        <div style={{ fontSize: 24, fontWeight: 700, color: t.text, fontFamily: 'DM Serif Display' }}>School Dashboard</div>
+      </div>
+
+      <div style={{ padding: '16px' }}>
+        {/* Post CTA */}
+        <button onClick={onPost} style={{
+          width: '100%', background: t.accent, color: '#fff',
+          border: 'none', borderRadius: 16, padding: '18px 20px',
+          display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer',
+          marginBottom: 14, textAlign: 'left', fontFamily: 'DM Sans',
+        }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="plus" size={22} color="#fff"/>
+          </div>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>Post a New Shift</div>
+            <div style={{ fontSize: 12, opacity: 0.8, marginTop: 2 }}>Find a casual educator fast</div>
+          </div>
+        </button>
+
+        {/* Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 18 }}>
+          {[
+            { label: 'Open shifts', val: '2' },
+            { label: 'Applications', val: '4' },
+            { label: 'Educators hired', val: '31' },
+          ].map(s => (
+            <div key={s.label} style={{
+              background: t.card, borderRadius: 12, padding: '14px 10px',
+              border: `1px solid ${t.border}`, textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: t.accent, fontFamily: 'DM Serif Display' }}>{s.val}</div>
+              <div style={{ fontSize: 10, color: t.textMuted, marginTop: 2, lineHeight: 1.3 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Listings */}
+        <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 10 }}>Your Listings</div>
+        {SCHOOL_LISTINGS.map(l => (
+          <div key={l.id} onClick={onManage} style={{
+            background: t.card, borderRadius: 14, padding: '14px',
+            border: `1px solid ${t.border}`, marginBottom: 10, cursor: 'pointer',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: t.text, marginBottom: 3 }}>{l.title}</div>
+                <div style={{ fontSize: 12, color: t.textMid }}>{l.date} · {l.time}</div>
+              </div>
+              <span style={{
+                padding: '4px 10px', borderRadius: 100, fontSize: 11, fontWeight: 600,
+                background: l.status === 'Filled' ? '#E8F5E9' : t.accentLight,
+                color: l.status === 'Filled' ? '#2E7D32' : t.accent,
+              }}>{l.status}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: t.textMuted }}>
+              <Icon name="users" size={13} color={t.textMuted}/>
+              {l.applicants} application{l.applicants !== 1 ? 's' : ''}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PostShift({ t, onBack, onDone }) {
+  const [step, setStep] = React.useState(1);
+  const totalSteps = 3;
+  const [form, setForm] = React.useState({ date: 'Tue 22 Apr', time: '8:30am', endTime: '3:30pm', level: 'Primary (6–9)', reason: '', notes: '' });
+
+  const Field = ({ label, value, onChange, placeholder }) => (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: t.textMid, marginBottom: 6 }}>{label}</div>
+      <div style={{
+        background: t.bg, border: `1.5px solid ${t.border}`,
+        borderRadius: 12, padding: '12px 14px',
+        fontSize: 14, color: value ? t.text : t.textMuted,
+      }}>{value || placeholder}</div>
+    </div>
+  );
+
+  const SelectRow = ({ label, options, val, onSelect }) => (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: t.textMid, marginBottom: 8 }}>{label}</div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {options.map(o => (
+          <button key={o} onClick={() => onSelect(o)} style={{
+            padding: '8px 14px', borderRadius: 100,
+            border: `1.5px solid ${val === o ? t.accent : t.border}`,
+            background: val === o ? t.accentLight : t.card,
+            color: val === o ? t.accent : t.textMid,
+            fontSize: 13, fontWeight: val === o ? 600 : 400, cursor: 'pointer', fontFamily: 'DM Sans',
+          }}>{o}</button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const stepContent = [
+    // Step 1: When
+    <div key={1}>
+      <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 4 }}>When is the shift?</div>
+      <div style={{ fontSize: 13, color: t.textMuted, marginBottom: 20 }}>Set the date and time for this shift</div>
+      <Field label="DATE" value={form.date} placeholder="Select date"/>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Field label="START TIME" value={form.time} placeholder="Start"/>
+        <Field label="END TIME" value={form.endTime} placeholder="End"/>
+      </div>
+      <SelectRow
+        label="SHIFT TYPE"
+        options={['Full day', 'Morning', 'Afternoon']}
+        val="Full day"
+        onSelect={() => {}}
+      />
+    </div>,
+    // Step 2: Who
+    <div key={2}>
+      <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 4 }}>What role do you need?</div>
+      <div style={{ fontSize: 13, color: t.textMuted, marginBottom: 20 }}>Tell educators what you're looking for</div>
+      <SelectRow
+        label="CLASS LEVEL"
+        options={['Toddler (18m–3)', 'Casa (3–6)', 'Primary (6–9)', 'Primary (9–12)']}
+        val={form.level}
+        onSelect={v => setForm(f => ({ ...f, level: v }))}
+      />
+      <SelectRow
+        label="REASON FOR SHIFT"
+        options={['Teacher illness', 'PD day', 'Parental leave', 'Other']}
+        val={form.reason || 'Teacher illness'}
+        onSelect={v => setForm(f => ({ ...f, reason: v }))}
+      />
+    </div>,
+    // Step 3: Details
+    <div key={3}>
+      <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 4 }}>Additional details</div>
+      <div style={{ fontSize: 13, color: t.textMuted, marginBottom: 20 }}>Help educators prepare for the shift</div>
+      <Field label="PAY RATE" value="$38/hr" placeholder="Enter pay rate"/>
+      <Field label="REQUIREMENTS" value="" placeholder="e.g. AMI trained, WWCC required…"/>
+      <Field label="NOTES FOR EDUCATOR" value="" placeholder="Any extra info they should know…"/>
+      {/* Summary */}
+      <div style={{ background: t.accentLight, borderRadius: 12, padding: '14px', marginTop: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: t.accent, marginBottom: 8 }}>SHIFT SUMMARY</div>
+        {[
+          ['Date', form.date],
+          ['Time', `${form.time} – ${form.endTime}`],
+          ['Level', form.level],
+          ['Pay', '$38/hr'],
+        ].map(([k, v]) => (
+          <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+            <span style={{ color: t.textMid }}>{k}</span>
+            <span style={{ color: t.text, fontWeight: 600 }}>{v}</span>
+          </div>
+        ))}
+      </div>
+    </div>,
+  ];
+
+  return (
+    <div style={{ background: t.bg, minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{ background: t.card, borderBottom: `1px solid ${t.border}`, padding: '56px 16px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <button onClick={onBack} style={{
+            background: t.bg, border: `1px solid ${t.border}`, borderRadius: 10, width: 36, height: 36,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          }}>
+            <Icon name="chevron-left" size={18} color={t.text}/>
+          </button>
+          <span style={{ fontSize: 17, fontWeight: 600, color: t.text }}>Post a Shift</span>
+        </div>
+        {/* Progress */}
+        <div style={{ display: 'flex', gap: 6 }}>
+          {Array.from({ length: totalSteps }, (_, i) => (
+            <div key={i} style={{
+              flex: 1, height: 4, borderRadius: 100,
+              background: i < step ? t.accent : t.border,
+              transition: 'background 0.3s',
+            }}/>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6 }}>Step {step} of {totalSteps}</div>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', padding: '20px 16px 100px' }}>
+        {stepContent[step - 1]}
+      </div>
+
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        background: t.navBg, backdropFilter: 'blur(16px)',
+        padding: '14px 16px 34px', borderTop: `1px solid ${t.border}`,
+      }}>
+        <button onClick={() => { if (step < totalSteps) setStep(s => s + 1); else onDone(); }} style={{
+          width: '100%', background: t.accent, color: '#fff',
+          border: 'none', borderRadius: 14, padding: '16px',
+          fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans',
+        }}>
+          {step < totalSteps ? 'Continue' : 'Post Shift'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ManageApplicants({ t, onBack }) {
+  const applicants = [
+    { name: 'Sarah M.', rating: 4.9, shifts: 28, match: 'AMI Primary', avail: 'Available', initials: 'SM' },
+    { name: 'James T.', rating: 4.7, shifts: 14, match: 'Casa trained', avail: 'Available', initials: 'JT' },
+    { name: 'Priya K.', rating: 5.0, shifts: 41, match: 'AMI + ECE Deg.', avail: 'Available', initials: 'PK' },
+  ];
+  return (
+    <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 90 }}>
+      <div style={{ background: t.card, borderBottom: `1px solid ${t.border}`, padding: '56px 16px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+          <button onClick={onBack} style={{
+            background: t.bg, border: `1px solid ${t.border}`, borderRadius: 10, width: 36, height: 36,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          }}>
+            <Icon name="chevron-left" size={18} color={t.text}/>
+          </button>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>Primary Class Cover</div>
+            <div style={{ fontSize: 12, color: t.textMuted }}>Tue 22 Apr · 8:30–3:30pm · 3 applicants</div>
+          </div>
+        </div>
+      </div>
+      <div style={{ padding: '16px' }}>
+        <div style={{ fontSize: 12, color: t.textMuted, marginBottom: 12, fontWeight: 500 }}>APPLICANTS</div>
+        {applicants.map((a, i) => (
+          <div key={i} style={{
+            background: t.card, borderRadius: 14, padding: '14px',
+            border: `1px solid ${t.border}`, marginBottom: 10,
+          }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 22, background: t.accentLight,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: t.accent, fontFamily: 'DM Serif Display' }}>{a.initials}</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: t.text }}>{a.name}</div>
+                <div style={{ fontSize: 12, color: t.textMid }}>⭐ {a.rating} · {a.shifts} shifts · {a.match}</div>
+              </div>
+              <span style={{
+                background: t.accentLight, color: t.accent,
+                fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 100,
+              }}>{a.avail}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button style={{
+                flex: 1, background: t.accent, color: '#fff', border: 'none', borderRadius: 10,
+                padding: '10px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans',
+              }}>Hire</button>
+              <button style={{
+                flex: 1, background: t.bg, color: t.textMid, border: `1px solid ${t.border}`, borderRadius: 10,
+                padding: '10px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'DM Sans',
+              }}>View Profile</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── ROLE SELECT ────────────────────────────────────────────────
+function RoleSelect({ t, onSelect }) {
+  return (
+    <div style={{
+      background: t.bg, minHeight: '100%',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      padding: '40px 28px',
+    }}>
+      {/* Logo */}
+      <div style={{ textAlign: 'center', marginBottom: 48 }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: 20, background: t.accent,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
+        }}>
+          <span style={{ fontSize: 28, color: '#fff', fontFamily: 'DM Serif Display', fontStyle: 'italic' }}>f</span>
+        </div>
+        <div style={{ fontSize: 32, fontWeight: 700, color: t.text, fontFamily: 'DM Serif Display' }}>Floatly</div>
+        <div style={{ fontSize: 14, color: t.textMid, marginTop: 6, lineHeight: 1.5 }}>
+          Connecting Montessori educators<br/>with schools that need them
+        </div>
+      </div>
+
+      <div style={{ width: '100%', marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: t.textMuted, fontWeight: 600, textAlign: 'center', marginBottom: 16, letterSpacing: 0.06, textTransform: 'uppercase' }}>I am a…</div>
+        {[
+          { id: 'educator', icon: 'person', title: 'Casual Educator', sub: 'Browse & apply for shifts near me' },
+          { id: 'school', icon: 'building', title: 'Montessori School', sub: 'Post shifts & find qualified educators' },
+        ].map(r => (
+          <button key={r.id} onClick={() => onSelect(r.id)} style={{
+            width: '100%', background: t.card, border: `1.5px solid ${t.border}`,
+            borderRadius: 16, padding: '18px 20px', marginBottom: 12,
+            display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer',
+            textAlign: 'left', fontFamily: 'DM Sans', transition: 'all 0.15s',
+          }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 14, background: t.accentLight,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <Icon name={r.icon} size={22} color={t.accent}/>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{r.title}</div>
+              <div style={{ fontSize: 13, color: t.textMid, marginTop: 2 }}>{r.sub}</div>
+            </div>
+            <Icon name="chevron" size={16} color={t.textMuted}/>
+          </button>
+        ))}
+      </div>
+
+      <div style={{ fontSize: 12, color: t.textMuted, textAlign: 'center' }}>
+        Already have an account? <span style={{ color: t.accent, fontWeight: 600 }}>Sign in</span>
+      </div>
+    </div>
+  );
+}
+
+// ── POST-SHIFT SUCCESS ─────────────────────────────────────────
+function ShiftPostedSuccess({ t, onBack }) {
+  return (
+    <div style={{
+      background: t.bg, minHeight: '100%',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      padding: '40px 28px', textAlign: 'center',
+    }}>
+      <div style={{
+        width: 72, height: 72, borderRadius: 36, background: t.accentLight,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20,
+      }}>
+        <Icon name="check" size={32} color={t.accent}/>
+      </div>
+      <div style={{ fontSize: 24, fontWeight: 700, color: t.text, fontFamily: 'DM Serif Display', marginBottom: 10 }}>
+        Shift Posted!
+      </div>
+      <div style={{ fontSize: 14, color: t.textMid, lineHeight: 1.6, marginBottom: 32 }}>
+        Your shift has been posted. Qualified educators in your area will be notified right away.
+      </div>
+      <button onClick={onBack} style={{
+        width: '100%', background: t.accent, color: '#fff',
+        border: 'none', borderRadius: 14, padding: '16px',
+        fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans',
+      }}>Back to Dashboard</button>
+    </div>
+  );
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────
+function App() {
+  const [tweaks, setTweaks] = React.useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('floatly-tweaks') || '{}');
+      return { ...TWEAK_DEFAULTS, ...saved };
+    } catch { return TWEAK_DEFAULTS; }
+  });
+  const [showTweaks, setShowTweaks] = React.useState(false);
+
+  const t = THEMES[tweaks.theme];
+
+  // Navigation
+  const [role, setRole] = React.useState(null); // null = role select
+  const [educatorTab, setEducatorTab] = React.useState('browse');
+  const [schoolTab, setSchoolTab] = React.useState('dashboard');
+  const [selectedShift, setSelectedShift] = React.useState(null);
+  const [schoolScreen, setSchoolScreen] = React.useState('dashboard'); // dashboard | post | manage | success
+
+  const updateTweak = (key, val) => {
+    const next = { ...tweaks, [key]: val };
+    setTweaks(next);
+    localStorage.setItem('floatly-tweaks', JSON.stringify(next));
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { theme: next.theme } }, '*');
+  };
+
+  React.useEffect(() => {
+    window.addEventListener('message', (e) => {
+      if (e.data?.type === '__activate_edit_mode') setShowTweaks(true);
+      if (e.data?.type === '__deactivate_edit_mode') setShowTweaks(false);
+    });
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+  }, []);
+
+  // Restore state
+  React.useEffect(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('floatly-state') || '{}');
+      if (s.role) setRole(s.role);
+    } catch {}
+  }, []);
+
+  const setRoleAndSave = (r) => {
+    setRole(r);
+    localStorage.setItem('floatly-state', JSON.stringify({ role: r }));
+  };
+
+  // ── EDUCATOR CONTENT ──
+  const educatorContent = () => {
+    if (selectedShift) {
+      return <ShiftDetail shift={selectedShift} t={t} onBack={() => setSelectedShift(null)} onApply={() => {}}/>;
+    }
+    if (educatorTab === 'browse') return <EducatorBrowse t={t} onShiftSelect={setSelectedShift}/>;
+    if (educatorTab === 'saved') return (
+      <div style={{ background: t.bg, minHeight: '100%', padding: '60px 20px', textAlign: 'center' }}>
+        <Icon name="bookmark" size={40} color={t.textMuted} style={{ margin: '0 auto 12px', display: 'block' }}/>
+        <div style={{ fontSize: 16, fontWeight: 600, color: t.text, marginBottom: 6 }}>Saved Shifts</div>
+        <div style={{ fontSize: 13, color: t.textMuted }}>Shifts you bookmark will appear here</div>
+      </div>
+    );
+    if (educatorTab === 'profile') return <EducatorProfile t={t}/>;
+    return null;
+  };
+
+  // ── SCHOOL CONTENT ──
+  const schoolContent = () => {
+    if (schoolScreen === 'post') return <PostShift t={t} onBack={() => setSchoolScreen('dashboard')} onDone={() => setSchoolScreen('success')}/>;
+    if (schoolScreen === 'success') return <ShiftPostedSuccess t={t} onBack={() => setSchoolScreen('dashboard')}/>;
+    if (schoolScreen === 'manage') return <ManageApplicants t={t} onBack={() => setSchoolScreen('dashboard')}/>;
+    return <SchoolDashboard t={t} onPost={() => setSchoolScreen('post')} onManage={() => setSchoolScreen('manage')}/>;
+  };
+
+  const educatorTabs = [
+    { id: 'browse', label: 'Browse', icon: 'search' },
+    { id: 'saved', label: 'Saved', icon: 'bookmark' },
+    { id: 'profile', label: 'Profile', icon: 'person' },
+  ];
+
+  const schoolTabs = [
+    { id: 'dashboard', label: 'Dashboard', icon: 'grid' },
+    { id: 'post', label: 'Post Shift', icon: 'plus' },
+  ];
+
+  const renderPhone = (content, withNav = false, navTabs = [], activeTab = '', onTab = () => {}) => (
+    <IOSDevice width={375} height={812} dark={false}>
+      <div style={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ height: '100%', overflow: 'auto' }}>
+          {content}
+        </div>
+        {withNav && !selectedShift && schoolScreen === 'dashboard' && (
+          <BottomNav tabs={navTabs} active={activeTab} onTab={onTab} t={t}/>
+        )}
+        {withNav && role === 'educator' && !selectedShift && (
+          <BottomNav tabs={navTabs} active={activeTab} onTab={onTab} t={t}/>
+        )}
+      </div>
+    </IOSDevice>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 40, padding: '40px 20px' }}>
+      {/* Label row */}
+      <div style={{ display: 'flex', gap: 60, alignItems: 'flex-end' }}>
+        {/* Phone 1: Role Select / Onboarding */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <IOSDevice width={375} height={812} dark={false}>
+            <div style={{ height: '100%', overflow: 'auto' }}>
+              <RoleSelect t={t} onSelect={setRoleAndSave}/>
+            </div>
+          </IOSDevice>
+          <div style={{ color: '#999', fontSize: 12, fontFamily: 'DM Sans', fontWeight: 500 }}>Onboarding</div>
+        </div>
+
+        {/* Phone 2: Educator or School (main flow) */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          {role === null ? (
+            <IOSDevice width={375} height={812} dark={false}>
+              <div style={{ height: '100%', overflow: 'auto', background: t.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center', padding: 32 }}>
+                  <div style={{ fontSize: 14, color: t.textMuted, marginBottom: 8 }}>← Select a role</div>
+                  <div style={{ fontSize: 13, color: t.textMuted }}>Tap a role on the left to explore</div>
+                </div>
+              </div>
+            </IOSDevice>
+          ) : role === 'educator' ? (
+            <IOSDevice width={375} height={812} dark={false}>
+              <div style={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ height: '100%', overflow: 'auto' }}>
+                  {educatorContent()}
+                </div>
+                {!selectedShift && (
+                  <BottomNav tabs={educatorTabs} active={educatorTab} onTab={setEducatorTab} t={t}/>
+                )}
+              </div>
+            </IOSDevice>
+          ) : (
+            <IOSDevice width={375} height={812} dark={false}>
+              <div style={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ height: '100%', overflow: 'auto' }}>
+                  {schoolContent()}
+                </div>
+                {(schoolScreen === 'dashboard') && (
+                  <BottomNav tabs={schoolTabs} active={schoolTab} onTab={(id) => { setSchoolTab(id); if (id === 'post') setSchoolScreen('post'); else setSchoolScreen('dashboard'); }} t={t}/>
+                )}
+              </div>
+            </IOSDevice>
+          )}
+          <div style={{ color: '#999', fontSize: 12, fontFamily: 'DM Sans', fontWeight: 500 }}>
+            {role === 'educator' ? 'Educator Flow' : role === 'school' ? 'School Flow' : 'Select role →'}
+          </div>
+        </div>
+
+        {/* Phone 3: Secondary screen */}
+        {role === 'educator' && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+            <IOSDevice width={375} height={812} dark={false}>
+              <div style={{ height: '100%', overflow: 'auto' }}>
+                <EducatorProfile t={t}/>
+              </div>
+            </IOSDevice>
+            <div style={{ color: '#999', fontSize: 12, fontFamily: 'DM Sans', fontWeight: 500 }}>Educator Profile</div>
+          </div>
+        )}
+        {role === 'school' && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+            <IOSDevice width={375} height={812} dark={false}>
+              <div style={{ height: '100%', overflow: 'auto' }}>
+                <ManageApplicants t={t} onBack={() => {}}/>
+              </div>
+            </IOSDevice>
+            <div style={{ color: '#999', fontSize: 12, fontFamily: 'DM Sans', fontWeight: 500 }}>Manage Applicants</div>
+          </div>
+        )}
+      </div>
+
+      {/* Role switcher at bottom */}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <span style={{ color: '#666', fontSize: 12, fontFamily: 'DM Sans' }}>View as:</span>
+        {[
+          { id: 'educator', label: 'Educator' },
+          { id: 'school', label: 'School' },
+        ].map(r => (
+          <button key={r.id} onClick={() => { setRoleAndSave(r.id); setSelectedShift(null); setSchoolScreen('dashboard'); }} style={{
+            padding: '8px 20px', borderRadius: 100,
+            background: role === r.id ? '#fff' : 'transparent',
+            color: role === r.id ? '#111' : '#888',
+            border: role === r.id ? '1px solid #333' : '1px solid #444',
+            fontSize: 13, fontWeight: role === r.id ? 600 : 400,
+            cursor: 'pointer', fontFamily: 'DM Sans',
+          }}>{r.label}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+<!-- Tweaks Panel -->
+<div id="tweaks-panel">
+  <h3>Tweaks</h3>
+  <div class="tweak-group">
+    <div class="tweak-label">Color Theme</div>
+    <div class="theme-swatches">
+      <div class="swatch active" id="sw-terra" style="background:#C4714A" title="Terracotta" onclick="setTheme('terra')"></div>
+      <div class="swatch" id="sw-sage" style="background:#4E7C62" title="Sage" onclick="setTheme('sage')"></div>
+      <div class="swatch" id="sw-navy" style="background:#3B5FA0" title="Navy" onclick="setTheme('navy')"></div>
+    </div>
+  </div>
+</div>
+
+<div id="root"></div>
+
+<script>
+function setTheme(name) {
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+  document.getElementById('sw-' + name)?.classList.add('active');
+  window.__setTheme && window.__setTheme(name);
+  window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { theme: name } }, '*');
+}
+
+window.addEventListener('message', e => {
+  if (e.data?.type === '__activate_edit_mode') document.getElementById('tweaks-panel').style.display = 'block';
+  if (e.data?.type === '__deactivate_edit_mode') document.getElementById('tweaks-panel').style.display = 'none';
+});
+window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+</script>
+</body>
+</html>
